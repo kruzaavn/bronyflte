@@ -3,3 +3,4 @@ matplotlib
 pydcs==0.13.0
 jupyter
 pywin32
+colorcet
