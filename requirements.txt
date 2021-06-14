@@ -1,5 +1,5 @@
 pandas
 matplotlib
 jupyter
-pywin32
 colorcet
+cartopy
