@@ -51,6 +51,21 @@ def get_schedule(flights):
     return schedule
 
 
+def get_groups(mission, side='blue', category='plane'):
+
+    countries = mission.dict()['coalition'][side]['country']
+
+    items = []
+    for i, country in countries.items():
+
+        cat = country.get(category)
+
+        if cat:
+            items += [x for j, x in cat['group'].items()]
+
+    return items
+
+
 def generate_ato(mission, side='blue'):
     """
     take a dcs mission and generate an ato
@@ -60,19 +75,8 @@ def generate_ato(mission, side='blue'):
     :return:
     """
 
-    countries = mission.dict()['coalition'][side]['country']
-
-    flights = []
-    for i, country in countries.items():
-
-        planes = country.get('plane')
-        helicopters = country.get('helicopter')
-
-        if planes:
-            flights += [x for j, x in planes['group'].items()]
-
-        if helicopters:
-            flights += [x for j, x in helicopters['group'].items()]
+    flights = get_groups(mission, side, 'plane')
+    flights += get_groups(mission, side, 'helicopter')
 
     schedule = get_schedule(flights)
     schedule.sort(key=sort_flight, reverse=True)
