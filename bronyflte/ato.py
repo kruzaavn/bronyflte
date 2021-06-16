@@ -1,20 +1,27 @@
+"""ato generation and visualization functions"""
+
 import numpy as np
 import colorcet as cc
 import matplotlib.pyplot as plt
 from datetime import timedelta
 import dcs
 import pathlib
-import pprint
+from .common import get_groups
 
 
-def sort_flight(element):
+def sort_flight_schedule(element):
     """
     this function takes an schedule array element and return the first non-zero waypoint time, if the waypoint array
     is empty it's that the flight runs the duration of the mission.
 
-    :param element:
+    Parameters
+    ----------
+    element: schedule object
 
-    :return: first waypoint time or 0
+    Returns
+    -------
+    time: float
+        time since mission start of first element in the waypoints list or 0
     """
 
     waypoints = element['waypoints']
@@ -27,10 +34,19 @@ def sort_flight(element):
 
 def get_schedule(flights):
     """
-    this function will parse a flight array from a mission file and generate
+    this function will parse a flight array from a mission file and generate a
+    schedule object
 
-    :param flights:
-    :return:
+    Parameters
+    ----------
+    flights: list
+        dcs group list
+
+    Returns
+    -------
+    schedule: list of schedule dicts
+
+
     """
 
     schedule = []
@@ -51,35 +67,28 @@ def get_schedule(flights):
     return schedule
 
 
-def get_groups(mission, side='blue', category='plane'):
-
-    countries = mission.dict()['coalition'][side]['country']
-
-    items = []
-    for i, country in countries.items():
-
-        cat = country.get(category)
-
-        if cat:
-            items += [x for j, x in cat['group'].items()]
-
-    return items
-
-
 def generate_ato(mission, side='blue'):
     """
-    take a dcs mission and generate an ato
+    this function generates an ato from a pydcs mission
 
-    :param side: str blue or red
-    :param mission:
-    :return:
+    Parameters
+    ----------
+    mission: dcs.Mission
+    side: str
+        {'blue', 'red'}
+
+    Returns
+    -------
+    fig: matplotlib.Figure
+    ax: matplotlib.Axis
+
     """
 
     flights = get_groups(mission, side, 'plane')
     flights += get_groups(mission, side, 'helicopter')
 
     schedule = get_schedule(flights)
-    schedule.sort(key=sort_flight, reverse=True)
+    schedule.sort(key=sort_flight_schedule, reverse=True)
 
     fig, ax = plt.subplots(figsize=(10, 4))
 
@@ -110,12 +119,11 @@ def generate_ato(mission, side='blue'):
     ax.set_xticklabels(time_labels, rotation=90)
     ax.set_xlabel('Mission Time')
 
-    handles, labels = plt.gca().get_legend_handles_labels()
+    handles, labels = ax.get_legend_handles_labels()
     by_label = dict(zip(labels, handles))
-    plt.legend(by_label.values(), by_label.keys())
+    ax.legend(by_label.values(), by_label.keys())
 
-    fig.savefig('ato.png', dpi=600, bbox_inches='tight', facecolor='w')
-    plt.show()
+    return fig, ax
 
 
 if __name__ == "__main__":
@@ -129,4 +137,7 @@ if __name__ == "__main__":
     mission = dcs.Mission()
     mission.load_file(args.file)
 
-    generate_ato(mission)
+    figure, axis = generate_ato(mission)
+
+    figure.savefig('ato.png', dpi=600, bbox_inches='tight', facecolor='w')
+    plt.show()
