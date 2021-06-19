@@ -7,6 +7,8 @@ import datetime
 from pyproj import Transformer
 from .crs import crs
 import math
+import cartopy.crs as ccrs
+import matplotlib.pyplot as plt
 
 utf = 'utf-8'
 
@@ -60,6 +62,28 @@ class FlightPlan:
 
         return f'duration: {hours}:{minutes}:{td.seconds % 60}'
 
+    def get_coords(self):
+
+        lons = []
+        lats = []
+        for waypoint in self.waypoints:
+            lons.append(waypoint.longitude)
+            lats.append(waypoint.latitude)
+
+        return lons, lats
+
+    def plot(self):
+        projection = ccrs.PlateCarree()
+
+        fig, ax = plt.subplots(subplot_kw={'projection': projection})
+
+        lons, lats = self.get_coords()
+
+        ax.plot(lons, lats)
+        ax.coastlines()
+
+        return fig, ax
+
     @classmethod
     def from_dcs(cls, waypoints, transform):
 
@@ -79,7 +103,7 @@ class FlightPlan:
 
         for waypoint in waypoints:
 
-            lon, lat = transform.transform(waypoint['x'], waypoint['y'])
+            lat, lon = transform.transform(waypoint['x'], waypoint['y'])
 
             wp = Waypoint(
                 waypoint['ETA'],
@@ -245,10 +269,18 @@ class Mission:
         self.simulation_start = datetime.datetime(**date) + datetime.timedelta(seconds=mission['start_time'])
 
         for country in mission['coalition']['blue']['country']:
-            self.flights = [
-                Flight.from_dcs(flight, self._crs_wgs84_transform) for flight in
-                country['plane']['group'] + country['helicopter']['group']
-            ]
+
+            flights = []
+            helicopters = country.get('helicopter')
+            planes = country.get('plane')
+
+            if helicopters:
+                flights += helicopters['group']
+
+            if planes:
+                flights += planes['group']
+
+            self.flights = [Flight.from_dcs(flight, self._crs_wgs84_transform) for flight in flights]
 
     def save(self, path):
         """
